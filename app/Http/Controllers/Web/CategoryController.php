@@ -7,7 +7,8 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
-use App\Services\CategoryService;
+use App\Services\Contracts\CategoryServiceInterface;
+use App\Support\Data\CategoryData;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,7 +17,7 @@ class CategoryController extends Controller
 {
     public function __construct(
         private readonly CategoryRepositoryInterface $categories,
-        private readonly CategoryService $service,
+        private readonly CategoryServiceInterface $service,
     ) {
     }
 
@@ -35,13 +36,13 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        $this->service->create($request->validated());
+        $this->service->create(CategoryData::fromArray($request->validated()));
         return back()->with('success', 'Category created');
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $this->service->update($category, $request->validated());
+        $this->service->update($category, CategoryData::fromArray($request->validated()));
         return back()->with('success', 'Category updated');
     }
 

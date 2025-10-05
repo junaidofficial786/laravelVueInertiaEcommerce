@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
+use App\Services\Contracts\CategoryServiceInterface;
+use App\Support\Data\CategoryData;
 use Illuminate\Database\DatabaseManager as DB;
 use Illuminate\Support\Str;
 
-class CategoryService
+class CategoryService implements CategoryServiceInterface
 {
     public function __construct(
         private readonly CategoryRepositoryInterface $categories,
@@ -15,19 +17,19 @@ class CategoryService
     ) {
     }
 
-    public function create(array $payload): Category
+    public function create(CategoryData $data): Category
     {
-        return $this->db->transaction(function () use ($payload) {
-            $data = $this->prepare($payload);
-            return $this->categories->create($data);
+        return $this->db->transaction(function () use ($data) {
+            $prepared = $this->prepare($data);
+            return $this->categories->create($prepared);
         });
     }
 
-    public function update(Category $category, array $payload): Category
+    public function update(Category $category, CategoryData $data): Category
     {
-        return $this->db->transaction(function () use ($category, $payload) {
-            $data = $this->prepare($payload, $category);
-            return $this->categories->update($category, $data);
+        return $this->db->transaction(function () use ($category, $data) {
+            $prepared = $this->prepare($data, $category);
+            return $this->categories->update($category, $prepared);
         });
     }
 
@@ -39,17 +41,17 @@ class CategoryService
         });
     }
 
-    private function prepare(array $payload, ?Category $existing = null): array
+    private function prepare(CategoryData $payload, ?Category $existing = null): array
     {
         $data = [
-            'name' => $payload['name'],
-            'description' => $payload['description'] ?? null,
-            'parent_id' => $payload['parent_id'] ?? null,
-            'is_active' => (bool)($payload['is_active'] ?? true),
-            'sort_order' => (int)($payload['sort_order'] ?? 0),
+            'name' => $payload->name,
+            'description' => $payload->description,
+            'parent_id' => $payload->parent_id,
+            'is_active' => $payload->is_active,
+            'sort_order' => $payload->sort_order,
         ];
 
-        $slugSource = $payload['slug'] ?? $data['name'];
+        $slugSource = $payload->slug ?? $data['name'];
         $slug = Str::slug($slugSource);
         if ($existing && $existing->slug === $slug) {
             $data['slug'] = $slug;
