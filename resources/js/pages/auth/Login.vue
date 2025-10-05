@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import AuthenticatedSessionController from '@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController';
+import { ref } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -32,13 +34,8 @@ defineProps<{
             {{ status }}
         </div>
 
-        <Form
-            v-bind="AuthenticatedSessionController.store.form()"
-            :reset-on-success="['password']"
-            v-slot="{ errors, processing }"
-            class="flex flex-col gap-6"
-        >
-            <div class="grid gap-6">
+        <Form @submit.prevent="doLogin" class="flex flex-col gap-6">
+            <div class="grid gap-6" @submit.prevent>
                 <div class="grid gap-2">
                     <Label for="email">Email address</Label>
                     <Input
@@ -50,6 +47,7 @@ defineProps<{
                         :tabindex="1"
                         autocomplete="email"
                         placeholder="email@example.com"
+                        v-model="form.email"
                     />
                     <InputError :message="errors.email" />
                 </div>
@@ -74,23 +72,25 @@ defineProps<{
                         :tabindex="2"
                         autocomplete="current-password"
                         placeholder="Password"
+                        v-model="form.password"
                     />
                     <InputError :message="errors.password" />
                 </div>
 
                 <div class="flex items-center justify-between">
                     <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox id="remember" name="remember" :tabindex="3" />
+                        <Checkbox id="remember" name="remember" :tabindex="3" v-model:checked="form.remember" />
                         <span>Remember me</span>
                     </Label>
                 </div>
 
                 <Button
-                    type="submit"
+                    type="button"
                     class="mt-4 w-full"
                     :tabindex="4"
                     :disabled="processing"
                     data-test="login-button"
+                    @click="doLogin"
                 >
                     <LoaderCircle
                         v-if="processing"
@@ -107,3 +107,26 @@ defineProps<{
         </Form>
     </AuthBase>
 </template>
+
+<script lang="ts">
+export default {
+    data() {
+        return {
+            form: useForm({ email: '', password: '', remember: false }),
+            errors: {} as Record<string, string>,
+            processing: false,
+        };
+    },
+    methods: {
+        doLogin() {
+            this.form.post('/login', {
+                onSuccess: () => router.visit('/dashboard'),
+                onError: (errs: Record<string, string>) => {
+                    this.errors = errs;
+                    import('@/composables/useToast').then(({ useToast }) => useToast().error('Login failed'));
+                },
+            });
+        },
+    },
+};
+</script>
