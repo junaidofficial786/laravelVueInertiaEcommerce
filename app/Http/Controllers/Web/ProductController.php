@@ -59,6 +59,13 @@ class ProductController extends Controller
     private function storeImages(Product $product, array $files, bool $replace = false): void
     {
         if ($replace) {
+            foreach ($product->images as $image) {
+                try {
+                    Storage::disk($image->disk)->delete($image->path);
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            }
             $product->images()->delete();
         }
         foreach ($files as $index => $file) {
